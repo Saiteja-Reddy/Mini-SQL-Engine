@@ -1,6 +1,7 @@
 import sqlparse
 import sys
 import string
+import glob
 
 # print(sys.argv)
 
@@ -86,4 +87,48 @@ for line in f:
 f.close()
 
 print(table_info)
+
+avail_met = list(table_info.keys())
+
+avail_files = glob.glob("*.csv")
+
+table_data = {}
+
+for table in tables:
+	file = table + ".csv"
+	if(table not in avail_met):
+		print("Metadata not available for Table : ", table)
+		exit()
+
+	if(file not in avail_files):
+		print("Table File not available for Table : ", table)
+		exit()
+
+	# print(file)
+
+	cols = table_info[table]
+
+	info = {}
+	for col in cols:
+		info[col] = []
+
+	f1 = open(file, 'r')
+	for line in f1:
+		line = line.split(",")
+		line = list(map(str.strip, line))
+		for i,col in enumerate(cols):
+			info[col].append(line[i])
+
+	table_data[table] = info
+
+print(table_data)
+### done reading tables data
+
+
+## do join operations if any
+
+### handle where
+
+### handle project operations
+
 
