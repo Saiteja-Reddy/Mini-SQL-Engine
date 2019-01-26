@@ -2,6 +2,8 @@ import sqlparse
 import sys
 import string
 import glob
+import re
+import itertools
 
 # print(sys.argv)
 
@@ -108,26 +110,50 @@ for table in tables:
 
 	cols = table_info[table]
 
-	info = {}
-	for col in cols:
-		info[col] = []
+	# info = {}
+	# for col in cols:
+		# info[col] = []
+
+	table_data[table] = []
 
 	f1 = open(file, 'r')
 	for line in f1:
 		line = line.split(",")
 		line = list(map(str.strip, line))
-		for i,col in enumerate(cols):
-			info[col].append(line[i])
+		if len(line) != len(cols):
+			print("Data in table :" + table, "not matching metadata.")
+			exit()
+		table_data[table].append(line)
+		# for i,col in enumerate(cols):
+			# info[col].append(line[i])
 
-	table_data[table] = info
+	# table_data[table] = info
 
 print(table_data)
 ### done reading tables data
 
 
 ## do join operations if any
+print("Do Join:")
+inp = [table_data[tab] for tab in tables]
+out = list(itertools.product(*inp))
+joined = [list(itertools.chain(*a)) for a  in out]
+print(joined)
+print(len(joined))
+
+tab_inf = [[ tab+'.'+a for a  in table_info[tab]] for tab in tables]
+tab_inf = list(itertools.chain(*tab_inf))
+print(tab_inf)
 
 ### handle where
+print(where)
+where = str(where).strip()
+where = where.strip('where')
+where = where.rstrip(';')
+where = where.strip()
+print("where:", where)
+
+print(re.split('(<=|>=|<|>|=)', where))
 
 ### handle project operations
 
