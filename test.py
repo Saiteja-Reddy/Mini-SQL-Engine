@@ -4,6 +4,7 @@ import string
 import glob
 import re
 import itertools
+import numpy as np
 
 # print(sys.argv)
 
@@ -271,12 +272,39 @@ print(where_data_fin, tab_inf)
 
 ### handle project operations
 print()
-print()
-print()
+# print()
+# print()
 
 selections = selections[0].split(",")
 selections = list(map(str.strip, selections))
 print(selections)
+
+find_max = re.compile("max\((.*)\)")
+find_min = re.compile("min\((.*)\)")
+find_mean = re.compile("average\((.*)\)")
+find_sum = re.compile("sum\((.*)\)")
+
+def check_aggregate(sel):
+	 out_max = find_max.match(sel) is not None
+	 out_min = find_min.match(sel) is not None
+	 out_mean = find_mean.match(sel) is not None
+	 out_sum = find_sum.match(sel) is not None
+	 return out_max | out_mean | out_min | out_sum
+
+def get_aggregate(sel):
+	 out_max = find_max.match(sel) is not None
+	 if out_max:
+	 	return ('max',  find_max.match(sel).groups()[0])
+	 out_min = find_min.match(sel) is not None
+	 if out_min:
+	 	return ('min',  find_min.match(sel).groups()[0])	 
+	 out_mean = find_mean.match(sel) is not None
+	 if out_mean:
+	 	return ('mean',  find_mean.match(sel).groups()[0])		 
+	 out_sum = find_sum.match(sel) is not None
+	 if out_sum:
+	 	return ('sum',  find_sum.match(sel).groups()[0])
+	 return ('not', -1)
 
 if "*" in selections:
 	# print("project ALL")
@@ -287,18 +315,73 @@ if "*" in selections:
 		print(entry)
 else:
 	indices = []
+	agg_f = 0
 	for sel in selections:
-		if sel != "*":
-			now = find_var(sel, table_info, tables, tab_inf)
-			indices.append(now[1])
-			# print(now)
-	for i in indices:
-		print(tab_inf[i], end=",")
-	print()	
-	for entry in where_data_fin:
+			if check_aggregate(sel):
+				# print("Aggregate Functions")
+				agg_f = 1
+				break
+
+	if agg_f == 0:
+		for sel in selections:
+			if sel != "*":
+				now = find_var(sel, table_info, tables, tab_inf)
+				indices.append(now[1])
+				# print(now)
 		for i in indices:
-			print(entry[i], end=",")
-		print()
+			print(tab_inf[i], end=",")
+		print()	
+		for entry in where_data_fin:
+			for i in indices:
+				print(entry[i], end=",")
+			print()
+	else:
+		for sel in selections:
+				if not check_aggregate(sel):
+					print("Cannot combine non-aggregate with aggregate projection.")
+					exit()
+					# print("Aggregate Functions")
+					# agg_f = 1
+
+		p_data = np.asarray(where_data_fin)
+		names = []
+		output = []
+		for sel in selections:
+			now = get_aggregate(sel)
+			if now[0] == "min":
+				id_n = find_var(now[1], table_info, tables, tab_inf)
+				names.append(sel)
+				temp = np.min(p_data, axis = 0)
+				output.append(temp[id_n[1]])
+			if now[0] == "max":
+				id_n = find_var(now[1], table_info, tables, tab_inf)
+				names.append(sel)
+				temp = np.max(p_data, axis = 0)
+				output.append(temp[id_n[1]])
+			if now[0] == "mean":
+				id_n = find_var(now[1], table_info, tables, tab_inf)
+				names.append(sel)
+				temp = np.mean(p_data, axis = 0)
+				output.append(temp[id_n[1]])
+			if now[0] == "sum":
+				id_n = find_var(now[1], table_info, tables, tab_inf)
+				names.append(sel)
+				temp = np.sum(p_data, axis = 0)
+				output.append(temp[id_n[1]])
+
+		for name in names:
+			print(name, end=",")
+		print()	
+		for out in output:
+			print(out, end=",")
+		print()		
 
 
+
+
+# data = np.asarray(where_data_fin)
+# print(np.max(p_data, axis = 0))
+# print(np.min(p_data, axis = 0))
+# print(np.mean(p_data, axis = 0))
+# print(np.sum(p_data, axis = 0))
 
