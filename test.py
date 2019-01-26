@@ -33,9 +33,9 @@ def find_var(label, table_info, tables, tab_inf):
 	print("Could not find variable " + label)
 	exit()	
 
-
 def run_where_op(where, joined_data, table_info, tables, tab_inf):
 	data = []
+	data_bin = []
 	print("here: " , where)
 	where = re.split('(<=|>=|<|>|=)', where)
 	where = [a.strip() for a in where]
@@ -51,6 +51,9 @@ def run_where_op(where, joined_data, table_info, tables, tab_inf):
 		for dat in joined_data:
 			if eval(op):
 				data.append(dat)
+				data_bin.append(1)
+			else:
+				data_bin.append(0)
 		# print(data)
 	else:
 		where[2] = find_var(where[2], table_info, tables, tab_inf)
@@ -62,7 +65,10 @@ def run_where_op(where, joined_data, table_info, tables, tab_inf):
 			for dat in joined_data:
 				if eval(op):
 					# del dat[where[0][1]]
-					data.append(dat)	
+					data.append(dat)
+					data_bin.append(1)
+				else:
+					data_bin.append(0)						
 			# del tab_inf[where[0][1]]
 
 		else:
@@ -72,10 +78,13 @@ def run_where_op(where, joined_data, table_info, tables, tab_inf):
 			for dat in joined_data:
 				if eval(op):
 					# del dat[where[0][1]]
-					data.append(dat)	
+					data.append(dat)
+					data_bin.append(1)
+				else:
+					data_bin.append(0)						
 			# del tab_inf[where[0][1]]			
 
-	return (data, tab_inf)
+	return (data, tab_inf, data_bin)
 
 # print(stmt.get_type())
 
@@ -150,7 +159,7 @@ for line in f:
 
 f.close()
 
-print(table_info)
+# print(table_info)
 
 avail_met = list(table_info.keys())
 
@@ -202,7 +211,7 @@ inp = [table_data[tab] for tab in tables]
 out = list(itertools.product(*inp))
 joined = [list(itertools.chain(*a)) for a  in out]
 print(joined)
-print(len(joined))
+# print(len(joined))
 
 tab_inf = [[ tab+'.'+a for a  in table_info[tab]] for tab in tables]
 # tab_inf = [[ a for a  in table_info[tab]] for tab in tables]
@@ -210,22 +219,86 @@ tab_inf = list(itertools.chain(*tab_inf))
 print(tab_inf)
 
 ### handle where
-print(where)
+# print(where)
 where = str(where).strip()
 where = where.strip('where')
 where = where.rstrip(';')
 where = where.strip()
-print("where:", where)
+# print("where:", where)
 
-data = []
+# data = []
+where_data_fin = joined
 
-if where.find(" AND ") is not -1:
-	print(where.split(" AND "))
-elif where.find(" OR ") is not -1:
-	print(where.split("OR"))
-else:
-	print(run_where_op(where, joined, table_info, tables, tab_inf))
+if(where != ""):
+	where_data_fin = []
+	if where.find(" AND ") is not -1:
+		options = where.split(" AND ")
+		where_dat_1, where_tab_inf_1, where_dat_bin_1 = run_where_op(options[0], joined, table_info, tables, tab_inf)
+		# print(where_dat_1, where_tab_inf_1, where_dat_bin_1)
+
+		where_dat_2, where_tab_inf_2, where_dat_bin_2 = run_where_op(options[1], joined, table_info, tables, tab_inf)
+		# print(where_dat_2, where_tab_inf_2, where_dat_bin_2)	
+
+		fin = [where_dat_bin_1[i] & where_dat_bin_2[i] for i in range(0, len(where_dat_bin_1)) ]
+
+
+		for i,f in enumerate(fin):
+			if f:
+				where_data_fin.append(joined[i])
+		# print(where_data_fin)
+	elif where.find(" OR ") is not -1:
+		options = where.split(" OR ")
+		where_dat_1, where_tab_inf_1, where_dat_bin_1 = run_where_op(options[0], joined, table_info, tables, tab_inf)
+		# print(where_dat_1, where_tab_inf_1, where_dat_bin_1)
+
+		where_dat_2, where_tab_inf_2, where_dat_bin_2 = run_where_op(options[1], joined, table_info, tables, tab_inf)
+		# print(where_dat_2, where_tab_inf_2, where_dat_bin_2)	
+
+		fin = [where_dat_bin_1[i] | where_dat_bin_2[i] for i in range(0, len(where_dat_bin_1)) ]
+
+		for i,f in enumerate(fin):
+			if f:
+				where_data_fin.append(joined[i])
+
+		# print(where_data_fin)
+	else:
+		where_dat, where_tab_inf, where_dat_bin = run_where_op(where, joined, table_info, tables, tab_inf)
+		# print(where_dat, where_tab_inf, where_dat_bin)
+		where_data_fin = where_dat
+
+
+print(where_data_fin, tab_inf)
 
 ### handle project operations
+print()
+print()
+print()
+
+selections = selections[0].split(",")
+selections = list(map(str.strip, selections))
+print(selections)
+
+if "*" in selections:
+	# print("project ALL")
+	for lab in tab_inf:
+		print(lab, end=",")
+	print()
+	for entry in where_data_fin:
+		print(entry)
+else:
+	indices = []
+	for sel in selections:
+		if sel != "*":
+			now = find_var(sel, table_info, tables, tab_inf)
+			indices.append(now[1])
+			# print(now)
+	for i in indices:
+		print(tab_inf[i], end=",")
+	print()	
+	for entry in where_data_fin:
+		for i in indices:
+			print(entry[i], end=",")
+		print()
+
 
 
