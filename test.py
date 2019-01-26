@@ -15,6 +15,50 @@ parsed = sqlparse.parse(sql)
 
 stmt = parsed[0]
 
+def find_var(label, table_info, tables):
+	if label.find('.') != -1:
+		# print("Search in tab_inf")
+		for i,lab in enumerate(tab_inf):
+			if label == lab:
+				return (label, i)
+	else:
+		for tab in tables:
+			for dat in table_info[tab]:
+				if dat == label:
+					curr = tab + "." + dat
+					for i,lab in enumerate(tab_inf):
+						if curr == lab:
+							return (curr, i)					
+
+	print("Could not find variable " + where[0])
+	exit()	
+
+
+def run_where_op(where, joined_data, table_info, tables):
+	data = []
+	print("here: " , where)
+	where = re.split('(<=|>=|<|>|=)', where)
+	where = [a.strip() for a in where]
+	# print(where)
+	where[0] = find_var(where[0], table_info, tables)
+	if where[2].isdigit():
+		print("Relational OP")
+		if(where[1] == "="):
+			where[1] = "=="
+		# print(find_var(where[0], table_info, tables))
+		op = "dat[" + str(where[0][1]) + "] " + str(where[1]) + " " + str(where[2])
+		print(op)
+		for dat in joined_data:
+			if eval(op):
+				data.append(dat)
+		print(data)
+	else:
+		where[2] = find_var(where[2], table_info, tables)
+		if where[1] == "=":
+			print("Join OP")
+		else:
+			print("Join Cmp OP")	
+
 # print(stmt.get_type())
 
 from_flag = 0
@@ -120,6 +164,7 @@ for table in tables:
 	for line in f1:
 		line = line.split(",")
 		line = list(map(str.strip, line))
+		line = list(map(int, line))
 		if len(line) != len(cols):
 			print("Data in table :" + table, "not matching metadata.")
 			exit()
@@ -142,6 +187,7 @@ print(joined)
 print(len(joined))
 
 tab_inf = [[ tab+'.'+a for a  in table_info[tab]] for tab in tables]
+# tab_inf = [[ a for a  in table_info[tab]] for tab in tables]
 tab_inf = list(itertools.chain(*tab_inf))
 print(tab_inf)
 
@@ -153,7 +199,14 @@ where = where.rstrip(';')
 where = where.strip()
 print("where:", where)
 
-print(re.split('(<=|>=|<|>|=)', where))
+data = []
+
+if where.find(" AND ") is not -1:
+	print(where.split(" AND "))
+elif where.find(" OR ") is not -1:
+	print(where.split("OR"))
+else:
+	run_where_op(where, joined, table_info, tables)
 
 ### handle project operations
 
