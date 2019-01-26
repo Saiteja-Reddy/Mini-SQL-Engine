@@ -15,7 +15,7 @@ parsed = sqlparse.parse(sql)
 
 stmt = parsed[0]
 
-def find_var(label, table_info, tables):
+def find_var(label, table_info, tables, tab_inf):
 	if label.find('.') != -1:
 		# print("Search in tab_inf")
 		for i,lab in enumerate(tab_inf):
@@ -30,34 +30,52 @@ def find_var(label, table_info, tables):
 						if curr == lab:
 							return (curr, i)					
 
-	print("Could not find variable " + where[0])
+	print("Could not find variable " + label)
 	exit()	
 
 
-def run_where_op(where, joined_data, table_info, tables):
+def run_where_op(where, joined_data, table_info, tables, tab_inf):
 	data = []
 	print("here: " , where)
 	where = re.split('(<=|>=|<|>|=)', where)
 	where = [a.strip() for a in where]
 	# print(where)
-	where[0] = find_var(where[0], table_info, tables)
+	where[0] = find_var(where[0], table_info, tables, tab_inf)
 	if where[2].isdigit():
 		print("Relational OP")
 		if(where[1] == "="):
 			where[1] = "=="
 		# print(find_var(where[0], table_info, tables))
 		op = "dat[" + str(where[0][1]) + "] " + str(where[1]) + " " + str(where[2])
-		print(op)
+		# print(op)
 		for dat in joined_data:
 			if eval(op):
 				data.append(dat)
-		print(data)
+		# print(data)
 	else:
-		where[2] = find_var(where[2], table_info, tables)
+		where[2] = find_var(where[2], table_info, tables, tab_inf)
 		if where[1] == "=":
-			print("Join OP")
+			print("Join OP") ### modify this to remove column
+			where[1] = "=="
+			op = "dat[" + str(where[0][1]) + "] " + str(where[1]) + " dat[" + str(where[2][1]) + "]"
+			# print(op)
+			for dat in joined_data:
+				if eval(op):
+					# del dat[where[0][1]]
+					data.append(dat)	
+			# del tab_inf[where[0][1]]
+
 		else:
 			print("Join Cmp OP")	
+			op = "dat[" + str(where[0][1]) + "] " + str(where[1]) + " dat[" + str(where[2][1]) + "]"
+			# print(op)
+			for dat in joined_data:
+				if eval(op):
+					# del dat[where[0][1]]
+					data.append(dat)	
+			# del tab_inf[where[0][1]]			
+
+	return (data, tab_inf)
 
 # print(stmt.get_type())
 
@@ -206,7 +224,7 @@ if where.find(" AND ") is not -1:
 elif where.find(" OR ") is not -1:
 	print(where.split("OR"))
 else:
-	run_where_op(where, joined, table_info, tables)
+	print(run_where_op(where, joined, table_info, tables, tab_inf))
 
 ### handle project operations
 
