@@ -275,6 +275,12 @@ print()
 # print()
 # print()
 
+distinct_flag = 0
+if selections[0] == "distinct":
+	print("get distinct")
+	distinct_flag = 1
+	del selections[0]
+
 selections = selections[0].split(",")
 selections = list(map(str.strip, selections))
 print(selections)
@@ -306,13 +312,18 @@ def get_aggregate(sel):
 	 	return ('sum',  find_sum.match(sel).groups()[0])
 	 return ('not', -1)
 
+out_lab = []
+output_final = []
+
 if "*" in selections:
 	# print("project ALL")
-	for lab in tab_inf:
-		print(lab, end=",")
-	print()
-	for entry in where_data_fin:
-		print(entry)
+	out_lab = tab_inf
+	output_final = where_data_fin
+	# for lab in tab_inf:
+	# 	print(lab, end=",")
+	# print()
+	# for entry in where_data_fin:
+	# 	print(entry)
 else:
 	indices = []
 	agg_f = 0
@@ -328,13 +339,22 @@ else:
 				now = find_var(sel, table_info, tables, tab_inf)
 				indices.append(now[1])
 				# print(now)
+
 		for i in indices:
-			print(tab_inf[i], end=",")
-		print()	
+			out_lab.append(tab_inf[i])
 		for entry in where_data_fin:
+			cur = []
 			for i in indices:
-				print(entry[i], end=",")
-			print()
+				cur.append(entry[i])
+			output_final.append(cur)
+
+		# for i in indices:
+		# 	print(tab_inf[i], end=",")
+		# print()	
+		# for entry in where_data_fin:
+		# 	for i in indices:
+		# 		print(entry[i], end=",")
+		# 	print()
 	else:
 		for sel in selections:
 				if not check_aggregate(sel):
@@ -369,19 +389,22 @@ else:
 				temp = np.sum(p_data, axis = 0)
 				output.append(temp[id_n[1]])
 
-		for name in names:
-			print(name, end=",")
-		print()	
-		for out in output:
-			print(out, end=",")
-		print()		
+		out_lab = names
+		output_final.append(output)
+
+		# for name in names:
+		# 	print(name, end=",")
+		# print()	
+		# for out in output:
+		# 	print(out, end=",")
+		# print()		
 
 
-
-
-# data = np.asarray(where_data_fin)
-# print(np.max(p_data, axis = 0))
-# print(np.min(p_data, axis = 0))
-# print(np.mean(p_data, axis = 0))
-# print(np.sum(p_data, axis = 0))
-
+for lab in out_lab:
+	print(lab, end=",")
+print()
+if(distinct_flag):
+	output_final = [list(x) for x in set(tuple(x) for x in output_final)]
+	output_final.reverse()
+for entry in output_final:
+	print(entry)
