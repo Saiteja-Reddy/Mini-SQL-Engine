@@ -12,7 +12,7 @@ D
 <begin_table>
 table3
 B
-D
+A
 <end_table>
 <begin_table>
 table4

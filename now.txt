@@ -1,2 +1,3 @@
-- convert from numpy
-- do distinct
+- convert from numpy - done
+- do distinct done
+- check join, remove common column - how ?

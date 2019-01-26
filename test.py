@@ -5,6 +5,8 @@ import glob
 import re
 import itertools
 import numpy as np
+from copy import copy
+from statistics import mean
 
 # print(sys.argv)
 
@@ -15,6 +17,8 @@ print("Input SQL is :", sql)
 parsed = sqlparse.parse(sql)
 
 stmt = parsed[0]
+
+delete_col = ""
 
 def find_var(label, table_info, tables, tab_inf):
 	if label.find('.') != -1:
@@ -35,6 +39,7 @@ def find_var(label, table_info, tables, tab_inf):
 	exit()	
 
 def run_where_op(where, joined_data, table_info, tables, tab_inf):
+	global delete_col
 	data = []
 	data_bin = []
 	print("here: " , where)
@@ -65,12 +70,13 @@ def run_where_op(where, joined_data, table_info, tables, tab_inf):
 			# print(op)
 			for dat in joined_data:
 				if eval(op):
-					# del dat[where[0][1]]
+					# del dat[where[2][1]]
+					delete_col = where
 					data.append(dat)
 					data_bin.append(1)
 				else:
 					data_bin.append(0)						
-			# del tab_inf[where[0][1]]
+			# del tab_inf[where[2][1]]
 
 		else:
 			print("Join Cmp OP")	
@@ -230,6 +236,8 @@ where = where.strip()
 # data = []
 where_data_fin = joined
 
+where_tab_inf = tab_inf
+
 if(where != ""):
 	where_data_fin = []
 	if where.find(" AND ") is not -1:
@@ -242,6 +250,7 @@ if(where != ""):
 
 		fin = [where_dat_bin_1[i] & where_dat_bin_2[i] for i in range(0, len(where_dat_bin_1)) ]
 
+		where_tab_inf = where_tab_inf_1
 
 		for i,f in enumerate(fin):
 			if f:
@@ -261,6 +270,8 @@ if(where != ""):
 			if f:
 				where_data_fin.append(joined[i])
 
+		where_tab_inf = where_tab_inf_1
+
 		# print(where_data_fin)
 	else:
 		where_dat, where_tab_inf, where_dat_bin = run_where_op(where, joined, table_info, tables, tab_inf)
@@ -268,6 +279,7 @@ if(where != ""):
 		where_data_fin = where_dat
 
 
+tab_inf = where_tab_inf
 print(where_data_fin, tab_inf)
 
 ### handle project operations
@@ -363,7 +375,7 @@ else:
 					# print("Aggregate Functions")
 					# agg_f = 1
 
-		p_data = np.asarray(where_data_fin)
+		p_data = copy(where_data_fin)
 		names = []
 		output = []
 		for sel in selections:
@@ -371,22 +383,26 @@ else:
 			if now[0] == "min":
 				id_n = find_var(now[1], table_info, tables, tab_inf)
 				names.append(sel)
-				temp = np.min(p_data, axis = 0)
+				temp = [min([p_data[d][b] for d in range(len(p_data))]) for b in range(len(p_data[0]))]
+				# temp = np.min(p_data, axis = 0)
 				output.append(temp[id_n[1]])
 			if now[0] == "max":
 				id_n = find_var(now[1], table_info, tables, tab_inf)
 				names.append(sel)
-				temp = np.max(p_data, axis = 0)
+				temp = [max([p_data[d][b] for d in range(len(p_data))]) for b in range(len(p_data[0]))]
+				# temp = np.max(p_data, axis = 0)
 				output.append(temp[id_n[1]])
 			if now[0] == "mean":
 				id_n = find_var(now[1], table_info, tables, tab_inf)
 				names.append(sel)
-				temp = np.mean(p_data, axis = 0)
+				temp = [mean([p_data[d][b] for d in range(len(p_data))]) for b in range(len(p_data[0]))]
+				# temp = np.mean(p_data, axis = 0)
 				output.append(temp[id_n[1]])
 			if now[0] == "sum":
 				id_n = find_var(now[1], table_info, tables, tab_inf)
 				names.append(sel)
-				temp = np.sum(p_data, axis = 0)
+				temp = [sum([p_data[d][b] for d in range(len(p_data))]) for b in range(len(p_data[0]))]
+				# temp = np.sum(p_data, axis = 0)
 				output.append(temp[id_n[1]])
 
 		out_lab = names
@@ -398,6 +414,26 @@ else:
 		# for out in output:
 		# 	print(out, end=",")
 		# print()		
+
+
+for lab in out_lab:
+	print(lab, end=",")
+print()
+if(distinct_flag):
+	output_final = [list(x) for x in set(tuple(x) for x in output_final)]
+	output_final.reverse()
+for entry in output_final:
+	print(entry)
+
+## check which to delete - and what to name
+
+if delete_col != "":
+	print("After Delete:")
+	print("her", delete_col)
+	for dat in output_final:
+		del dat[delete_col[2][1]]
+
+	del out_lab[delete_col[2][1]]
 
 
 for lab in out_lab:
