@@ -17,5 +17,5 @@ Errors
 * no table data - done
 * sql no table  - done
 * sql no where  - done
-* no semicolon
+* no semicolon - done
 * 

@@ -12,8 +12,15 @@ from statistics import mean
 
 sql = sys.argv[1]
 
-print("Input SQL is :", sql)
-print()
+# print("Input SQL is :", sql)
+# print()
+
+sql = sql.strip()
+if(sql[-1] != ";"):
+	print("Error: Need to terminate statement with a semi-colon!!")
+	exit()
+
+sql = sql[:-1]
 
 parsed = sqlparse.parse(sql)
 
@@ -36,7 +43,7 @@ def find_var(label, table_info, tables, tab_inf):
 						if curr == lab:
 							return (curr, i)					
 
-	print("Could not find variable " + label)
+	print("Error: Could not find variable " + label)
 	exit()	
 
 def run_where_op(where, joined_data, table_info, tables, tab_inf):
@@ -47,7 +54,7 @@ def run_where_op(where, joined_data, table_info, tables, tab_inf):
 	where = re.split('(<=|>=|<|>|=)', where)
 	where = [a.strip() for a in where]
 	if(len(where) is not 3):
-		print("Give correct where conditions: <var_one> <op> <var_two>")
+		print("Error: Give correct where conditions: <var_one> <op> <var_two>")
 		exit()
 	# print(where)
 	where[0] = find_var(where[0], table_info, tables, tab_inf)
@@ -140,7 +147,7 @@ tables = list(map(str.strip, tables))
 # print(tables)
 
 if(tables[0] == ""):
-	print("No table given as input!!")
+	print("Error: No table given as input!!")
 	exit()
 
 table_info = {}
@@ -185,11 +192,11 @@ table_data = {}
 for table in tables:
 	file = table + ".csv"
 	if(table not in avail_met):
-		print("Metadata not available for Table : ", table)
+		print("Error: Metadata not available for Table : ", table)
 		exit()
 
 	if(file not in avail_files):
-		print("Table File not available for Table : ", table)
+		print("Error: Table File not available for Table : ", table)
 		exit()
 
 	# print(file)
@@ -208,7 +215,7 @@ for table in tables:
 		line = list(map(str.strip, line))
 		line = list(map(int, line))
 		if len(line) != len(cols):
-			print("Data in table :" + table, "not matching metadata.")
+			print("Error: Data in table :" + table, "not matching metadata.")
 			exit()
 		table_data[table].append(line)
 		# for i,col in enumerate(cols):
@@ -237,7 +244,7 @@ tab_inf = list(itertools.chain(*tab_inf))
 # print(where)
 where = str(where).strip()
 if(where == "where"):
-	print("No where condition specfied!!")
+	print("Error: No where condition specfied!!")
 	exit()
 
 where = where.strip('where')
@@ -336,6 +343,17 @@ def get_aggregate(sel):
 	 	return ('sum',  find_sum.match(sel).groups()[0])
 	 return ('not', -1)
 
+
+
+
+# if delete_col != "":
+# 	print("After Delete:")
+# 	print("her", delete_col)
+# 	for dat in where_data_fin:
+# 		del dat[delete_col[2][1]]
+
+# 	del tab_inf[delete_col[2][1]]
+
 out_lab = []
 output_final = []
 
@@ -382,7 +400,7 @@ else:
 	else:
 		for sel in selections:
 				if not check_aggregate(sel):
-					print("Cannot combine non-aggregate with aggregate projection.")
+					print("Error: Cannot combine non-aggregate with aggregate projection.")
 					exit()
 					# print("Aggregate Functions")
 					# agg_f = 1
@@ -456,23 +474,51 @@ else:
 
 ## check which to delete - and what to name
 
-if delete_col != "":
+# out_lab = list(map(str, out_lab))
+# out_lab = ",".join(out_lab)
+# print(out_lab)
+
+test_lab = copy(out_lab)
+# print(out_lab)
+
+# print(selections)
+# print(delete_col)
+# print("*" not in selections)
+
+if delete_col != "" and "*" in selections:
 	# print("After Delete:")
 	# print("her", delete_col)
-	for dat in output_final:
-		del dat[delete_col[2][1]]
 
-	del out_lab[delete_col[2][1]]
+	# if(delete_col[1][0] in selections and delete_col[2][0] in selections):
+		# print("Error: Both join variables selected for projection!!")
+		# exit()
 
+	# index = -1
+	# if(delete_col[1][0] in selections):
+		# index = delete_col[1][1] 
+	# elif(delete_col[2][0] in selections):
+	index = delete_col[2][1] 		
 
-for lab in out_lab:
-	print(lab, end=",")
-print()
+	if(index != -1):
+		for dat in output_final:
+			del dat[index]
+
+		del out_lab[index]
+
+# for lab in out_lab:
+# 	print(lab, end=",")
+# print()
+
+out_lab = list(map(str, out_lab))
+out_lab = ",".join(out_lab)
+print(out_lab)
 if(distinct_flag):
 	output_final = [list(x) for x in set(tuple(x) for x in output_final)]
 	output_final.reverse()
 for entry in output_final:
-	for ent in entry:
-		print(ent, end=",")	
-	print()
-	# print(entry)
+	entry = list(map(str, entry))
+	entry = ",".join(entry)
+	# for ent in entry:
+		# print(ent, end=",")	
+	# print()
+	print(entry)
