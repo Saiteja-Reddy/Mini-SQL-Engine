@@ -13,6 +13,7 @@ from statistics import mean
 sql = sys.argv[1]
 
 print("Input SQL is :", sql)
+print()
 
 parsed = sqlparse.parse(sql)
 
@@ -42,13 +43,16 @@ def run_where_op(where, joined_data, table_info, tables, tab_inf):
 	global delete_col
 	data = []
 	data_bin = []
-	print("here: " , where)
+	# print("here: " , where)
 	where = re.split('(<=|>=|<|>|=)', where)
 	where = [a.strip() for a in where]
+	if(len(where) is not 3):
+		print("Give correct where conditions: <var_one> <op> <var_two>")
+		exit()
 	# print(where)
 	where[0] = find_var(where[0], table_info, tables, tab_inf)
 	if where[2].isdigit():
-		print("Relational OP")
+		# print("Relational OP")
 		if(where[1] == "="):
 			where[1] = "=="
 		# print(find_var(where[0], table_info, tables))
@@ -64,7 +68,7 @@ def run_where_op(where, joined_data, table_info, tables, tab_inf):
 	else:
 		where[2] = find_var(where[2], table_info, tables, tab_inf)
 		if where[1] == "=":
-			print("Join OP") ### modify this to remove column
+			# print("Join OP") ### modify this to remove column
 			where[1] = "=="
 			op = "dat[" + str(where[0][1]) + "] " + str(where[1]) + " dat[" + str(where[2][1]) + "]"
 			# print(op)
@@ -79,7 +83,7 @@ def run_where_op(where, joined_data, table_info, tables, tab_inf):
 			# del tab_inf[where[2][1]]
 
 		else:
-			print("Join Cmp OP")	
+			# print("Join Cmp OP")	
 			op = "dat[" + str(where[0][1]) + "] " + str(where[1]) + " dat[" + str(where[2][1]) + "]"
 			# print(op)
 			for dat in joined_data:
@@ -103,7 +107,7 @@ where = ""
 for i,token in enumerate(stmt.tokens):
 
 	if(i is 0):
-		print("Type of Statement: ", token)
+		# print("Type of Statement: ", token)
 		continue
 	
 	if(str(token.ttype) == "Token.Text.Whitespace" or str(token.ttype) == "Token.Punctuation" ):
@@ -111,12 +115,12 @@ for i,token in enumerate(stmt.tokens):
 
 	if(type(token) is sqlparse.sql.Where):
 		where = token
-		print("Where:", where)
+		# print("Where:", where)
 		continue		
 
 	if(from_flag == 1):
 		tables = str(token)
-		print("Tables: ", tables)
+		# print("Tables: ", tables)
 		from_flag = 2
 		continue
 
@@ -128,12 +132,16 @@ for i,token in enumerate(stmt.tokens):
 		
 	# print(str(token), str(Type(token)), token.ttype)
 
-print(selections, tables, where)
+# print(selections, tables, where)
 
 
 tables = tables.split(",")
 tables = list(map(str.strip, tables))
-print(tables)
+# print(tables)
+
+if(tables[0] == ""):
+	print("No table given as input!!")
+	exit()
 
 table_info = {}
 flag = 0
@@ -208,26 +216,30 @@ for table in tables:
 
 	# table_data[table] = info
 
-print(table_data)
+# print(table_data)
 ### done reading tables data
 
 
 ## do join operations if any
-print("Do Join:")
+# print("Do Join:")
 inp = [table_data[tab] for tab in tables]
 out = list(itertools.product(*inp))
 joined = [list(itertools.chain(*a)) for a  in out]
-print(joined)
+# print(joined)
 # print(len(joined))
 
 tab_inf = [[ tab+'.'+a for a  in table_info[tab]] for tab in tables]
 # tab_inf = [[ a for a  in table_info[tab]] for tab in tables]
 tab_inf = list(itertools.chain(*tab_inf))
-print(tab_inf)
+# print(tab_inf)
 
 ### handle where
 # print(where)
 where = str(where).strip()
+if(where == "where"):
+	print("No where condition specfied!!")
+	exit()
+
 where = where.strip('where')
 where = where.rstrip(';')
 where = where.strip()
@@ -280,22 +292,22 @@ if(where != ""):
 
 
 tab_inf = where_tab_inf
-print(where_data_fin, tab_inf)
+# print(where_data_fin, tab_inf)
 
 ### handle project operations
-print()
+# print()
 # print()
 # print()
 
 distinct_flag = 0
 if selections[0] == "distinct":
-	print("get distinct")
+	# print("get distinct")
 	distinct_flag = 1
 	del selections[0]
 
 selections = selections[0].split(",")
 selections = list(map(str.strip, selections))
-print(selections)
+# print(selections)
 
 find_max = re.compile("max\((.*)\)")
 find_min = re.compile("min\((.*)\)")
@@ -377,33 +389,50 @@ else:
 
 		p_data = copy(where_data_fin)
 		names = []
-		output = []
+		output = []	
+
 		for sel in selections:
 			now = get_aggregate(sel)
 			if now[0] == "min":
 				id_n = find_var(now[1], table_info, tables, tab_inf)
-				names.append(sel)
-				temp = [min([p_data[d][b] for d in range(len(p_data))]) for b in range(len(p_data[0]))]
-				# temp = np.min(p_data, axis = 0)
-				output.append(temp[id_n[1]])
+				names.append("min(" + id_n[0] + ")")
 			if now[0] == "max":
 				id_n = find_var(now[1], table_info, tables, tab_inf)
-				names.append(sel)
-				temp = [max([p_data[d][b] for d in range(len(p_data))]) for b in range(len(p_data[0]))]
-				# temp = np.max(p_data, axis = 0)
-				output.append(temp[id_n[1]])
+				names.append("max(" + id_n[0] + ")")
 			if now[0] == "mean":
 				id_n = find_var(now[1], table_info, tables, tab_inf)
-				names.append(sel)
-				temp = [mean([p_data[d][b] for d in range(len(p_data))]) for b in range(len(p_data[0]))]
-				# temp = np.mean(p_data, axis = 0)
-				output.append(temp[id_n[1]])
+				names.append("average(" + id_n[0] + ")")
 			if now[0] == "sum":
 				id_n = find_var(now[1], table_info, tables, tab_inf)
-				names.append(sel)
-				temp = [sum([p_data[d][b] for d in range(len(p_data))]) for b in range(len(p_data[0]))]
-				# temp = np.sum(p_data, axis = 0)
-				output.append(temp[id_n[1]])
+				names.append("sum(" + id_n[0] + ")")
+
+		if(len(p_data) != 0):
+			for sel in selections:
+				now = get_aggregate(sel)
+				if now[0] == "min":
+					id_n = find_var(now[1], table_info, tables, tab_inf)
+					# names.append("min(" + id_n[0] + ")")
+					temp = [min([p_data[d][b] for d in range(len(p_data))]) for b in range(len(p_data[0]))]
+					# temp = np.min(p_data, axis = 0)
+					output.append(temp[id_n[1]])
+				if now[0] == "max":
+					id_n = find_var(now[1], table_info, tables, tab_inf)
+					# names.append("max(" + id_n[0] + ")")
+					temp = [max([p_data[d][b] for d in range(len(p_data))]) for b in range(len(p_data[0]))]
+					# temp = np.max(p_data, axis = 0)
+					output.append(temp[id_n[1]])
+				if now[0] == "mean":
+					id_n = find_var(now[1], table_info, tables, tab_inf)
+					# names.append("average(" + id_n[0] + ")")
+					temp = [mean([p_data[d][b] for d in range(len(p_data))]) for b in range(len(p_data[0]))]
+					# temp = np.mean(p_data, axis = 0)
+					output.append(temp[id_n[1]])
+				if now[0] == "sum":
+					id_n = find_var(now[1], table_info, tables, tab_inf)
+					# names.append("sum(" + id_n[0] + ")")
+					temp = [sum([p_data[d][b] for d in range(len(p_data))]) for b in range(len(p_data[0]))]
+					# temp = np.sum(p_data, axis = 0)
+					output.append(temp[id_n[1]])
 
 		out_lab = names
 		output_final.append(output)
@@ -416,20 +445,20 @@ else:
 		# print()		
 
 
-for lab in out_lab:
-	print(lab, end=",")
-print()
-if(distinct_flag):
-	output_final = [list(x) for x in set(tuple(x) for x in output_final)]
-	output_final.reverse()
-for entry in output_final:
-	print(entry)
+# for lab in out_lab:
+# 	print(lab, end=",")
+# print()
+# if(distinct_flag):
+# 	output_final = [list(x) for x in set(tuple(x) for x in output_final)]
+# 	output_final.reverse()
+# for entry in output_final:
+# 	print(entry)
 
 ## check which to delete - and what to name
 
 if delete_col != "":
-	print("After Delete:")
-	print("her", delete_col)
+	# print("After Delete:")
+	# print("her", delete_col)
 	for dat in output_final:
 		del dat[delete_col[2][1]]
 
@@ -443,4 +472,7 @@ if(distinct_flag):
 	output_final = [list(x) for x in set(tuple(x) for x in output_final)]
 	output_final.reverse()
 for entry in output_final:
-	print(entry)
+	for ent in entry:
+		print(ent, end=",")	
+	print()
+	# print(entry)
